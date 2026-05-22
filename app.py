@@ -16,6 +16,15 @@ from datetime import datetime
 load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env'), override=True)
 init_db()
 
+# Auto-create admin from env vars (for Railway)
+_admin_name = os.getenv('ADMIN_NAME', '')
+_admin_pass = os.getenv('ADMIN_PASSWORD', '')
+if _admin_name and _admin_pass:
+    try:
+        create_user(_admin_name, _admin_pass, is_admin=True)
+    except Exception:
+        pass
+
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-change-in-production')
 app.config['MAX_CONTENT_LENGTH'] = 150 * 1024 * 1024

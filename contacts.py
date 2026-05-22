@@ -34,10 +34,42 @@ def get_contacts_sheet(sheets_id):
         return ws
 
 
+def extract_sheets_id(url_or_id):
+    """Extract spreadsheet ID from a full URL or return the ID as-is."""
+    if not url_or_id:
+        return ''
+    if 'spreadsheets/d/' in url_or_id:
+        part = url_or_id.split('spreadsheets/d/')[1]
+        return part.split('/')[0].split('?')[0]
+    return url_or_id.strip()
+
+
 def read_contacts(sheets_id):
     ws = get_contacts_sheet(sheets_id)
-    records = ws.get_all_records()
-    return [r for r in records if r.get('שם לקוח', '').strip()]
+    all_values = ws.get_all_values()
+    if len(all_values) < 2:
+        return []
+    headers = all_values[0]
+    # Ensure we have 7 columns (add missing headers)
+    while len(headers) < 7:
+        headers.append('')
+    results = []
+    for row in all_values[1:]:
+        while len(row) < 7:
+            row.append('')
+        name = row[0].strip()
+        if not name:
+            continue
+        results.append({
+            'שם לקוח': name,
+            'טלפון': row[1],
+            'אימייל': row[2],
+            'יום פגישה': row[3],
+            'שעת פגישה': row[4],
+            'הערות': row[5],
+            'Google Sheets ID': extract_sheets_id(row[6]),
+        })
+    return results
 
 
 def save_contact(sheets_id, contact):
@@ -49,7 +81,7 @@ def save_contact(sheets_id, contact):
         contact.get('meeting_day', ''),
         contact.get('meeting_time', ''),
         contact.get('notes', ''),
-        contact.get('sheets_id', ''),
+        extract_sheets_id(contact.get('sheets_id', '')),
     ])
 
 
@@ -63,7 +95,7 @@ def update_contact(sheets_id, row_index, contact):
         contact.get('meeting_day', ''),
         contact.get('meeting_time', ''),
         contact.get('notes', ''),
-        contact.get('sheets_id', ''),
+        extract_sheets_id(contact.get('sheets_id', '')),
     ]])
 
 

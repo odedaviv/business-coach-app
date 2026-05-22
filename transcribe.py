@@ -1,9 +1,14 @@
 from openai import OpenAI
 import anthropic
 import os
+import math
+import tempfile
 
 _openai = None
 _claude = None
+
+MAX_BYTES = 24 * 1024 * 1024  # 24MB — under Whisper's 25MB limit
+CHUNK_MINUTES = 20             # split into 20-minute chunks
 
 
 def get_openai():
@@ -21,13 +26,42 @@ def get_claude():
 
 
 def transcribe_audio(audio_path):
-    with open(audio_path, 'rb') as f:
+    """Transcribe audio — splits automatically if file > 24MB."""
+    if os.path.getsize(audio_path) <= MAX_BYTES:
+        return _transcribe_file(audio_path)
+    return _transcribe_chunked(audio_path)
+
+
+def _transcribe_file(path):
+    with open(path, 'rb') as f:
         result = get_openai().audio.transcriptions.create(
-            model='whisper-1',
-            file=f,
-            language='he'
+            model='whisper-1', file=f, language='he'
         )
     return result.text
+
+
+def _transcribe_chunked(audio_path):
+    """Split into chunks and transcribe each one."""
+    try:
+        from pydub import AudioSegment
+    except ImportError:
+        return _transcribe_file(audio_path)  # fallback
+
+    ext = audio_path.rsplit('.', 1)[-1].lower()
+    audio = AudioSegment.from_file(audio_path, format=ext)
+
+    chunk_ms = CHUNK_MINUTES * 60 * 1000
+    n_chunks = math.ceil(len(audio) / chunk_ms)
+    texts = []
+
+    for i in range(n_chunks):
+        chunk = audio[i * chunk_ms: (i + 1) * chunk_ms]
+        with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as tmp:
+            chunk.export(tmp.name, format='mp3')
+            texts.append(_transcribe_file(tmp.name))
+            os.unlink(tmp.name)
+
+    return ' '.join(texts)
 
 
 def summarize_meeting(client_name, transcript):

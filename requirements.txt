@@ -6,3 +6,4 @@ openai>=1.30.0
 python-dotenv>=1.0.0
 werkzeug>=2.3.0
 gunicorn>=21.2.0
+pydub>=0.25.1

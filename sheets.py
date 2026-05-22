@@ -13,7 +13,16 @@ def read_client_progress(sheets_id):
         raise RuntimeError('לא הוגדר Google Sheets ID ללקוח זה')
 
     gc = _get_gc()
-    ws = gc.open_by_key(sheets_id).sheet1
+
+    # Support 'SPREADSHEET_ID:GID' format for specific tab
+    if ':' in sheets_id:
+        spreadsheet_id, gid = sheets_id.split(':', 1)
+        spreadsheet = gc.open_by_key(spreadsheet_id)
+        ws = next((s for s in spreadsheet.worksheets() if str(s.id) == gid),
+                  spreadsheet.sheet1)
+    else:
+        ws = gc.open_by_key(sheets_id).sheet1
+
     rows = ws.get_all_values()
 
     if len(rows) < 2:

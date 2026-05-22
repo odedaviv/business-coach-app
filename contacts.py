@@ -35,13 +35,22 @@ def get_contacts_sheet(sheets_id):
 
 
 def extract_sheets_id(url_or_id):
-    """Extract spreadsheet ID from a full URL or return the ID as-is."""
+    """
+    Extract spreadsheet ID (and optional gid) from a full URL.
+    Returns 'SPREADSHEET_ID:GID' if gid found, else just 'SPREADSHEET_ID'.
+    """
+    import re
     if not url_or_id:
         return ''
+    url_or_id = url_or_id.strip()
     if 'spreadsheets/d/' in url_or_id:
         part = url_or_id.split('spreadsheets/d/')[1]
-        return part.split('/')[0].split('?')[0]
-    return url_or_id.strip()
+        spreadsheet_id = part.split('/')[0].split('?')[0]
+        match = re.search(r'gid=(\d+)', url_or_id)
+        if match:
+            return f"{spreadsheet_id}:{match.group(1)}"
+        return spreadsheet_id
+    return url_or_id
 
 
 def read_contacts(sheets_id):

@@ -3,7 +3,7 @@ from gauth import get_gc as _get_gc
 
 def read_client_progress(sheets_id):
     """
-    Read progress from a client's Google Sheet.
+    Read progress from a client's Google Sheet by spreadsheet ID.
     Expected structure:
       Row 1: headers (מוצר/תחום, לידים, יעד חודשי, שבוע 1-5, סה"כ, %, יעד שנתי, יעד חודשי ממוצע)
       Row 2+: data rows (one per category)
@@ -24,7 +24,6 @@ def read_client_progress(sheets_id):
         category = row[0].strip() if row else ''
         if not category:
             continue
-        # Skip agent summary rows (usually appear after a gap)
         try:
             monthly_goal = _to_num(row[2]) if len(row) > 2 else 0
             week1 = _to_num(row[3]) if len(row) > 3 else 0
@@ -38,7 +37,7 @@ def read_client_progress(sheets_id):
             continue
 
         if monthly_goal == 0 and cumulative == 0:
-            continue  # skip empty rows
+            continue
 
         remaining = max(0, monthly_goal - cumulative)
         results.append({

@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}לוח בקרה{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+  <h1 class="text-3xl font-bold text-gray-800 mb-1">שלום, עודד 👋</h1>
+  <p class="text-gray-500">בחר לקוח לצפייה בהתקדמות ויצירת מסר</p>
+</div>
+
+<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-10">
+  {% for client in clients %}
+  <a href="/client/{{ client.name }}"
+     class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md hover:border-blue-400 transition-all group">
+    <div class="flex items-center gap-3">
+      <div class="w-11 h-11 bg-blue-100 rounded-full flex items-center justify-center text-blue-800 font-bold text-lg group-hover:bg-blue-800 group-hover:text-white transition-colors">
+        {{ client.name[0] }}
+      </div>
+      <div>
+        <p class="text-gray-800 font-semibold">{{ client.name }}</p>
+        {% if client.sheets_id %}
+        <p class="text-xs text-green-600">מחובר לגוגל שיטס</p>
+        {% else %}
+        <p class="text-xs text-amber-500">ממתין לחיבור שיטס</p>
+        {% endif %}
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+
+<!-- Add client -->
+<div class="bg-white border border-dashed border-gray-300 rounded-xl p-5 max-w-lg">
+  <h2 class="text-gray-700 font-semibold mb-3">הוסף לקוח חדש</h2>
+  <div class="space-y-2">
+    <div class="flex gap-2">
+      <input id="new-name" type="text" placeholder="שם הלקוח"
+             class="border border-gray-300 rounded-lg px-3 py-2 flex-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+      <input id="new-pass" type="text" placeholder="סיסמה"
+             class="border border-gray-300 rounded-lg px-3 py-2 w-28 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+    </div>
+    <input id="new-sheets" type="text" placeholder="Google Sheets ID (אופציונלי — ניתן להוסיף אחר כך)"
+           class="border border-gray-300 rounded-lg px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+    <button onclick="addClient()"
+            class="bg-blue-800 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+      הוסף לקוח
+    </button>
+  </div>
+  <p id="add-msg" class="text-sm mt-2 hidden"></p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function addClient() {
+  const name = document.getElementById('new-name').value.trim();
+  const password = document.getElementById('new-pass').value.trim();
+  const sheets_id = document.getElementById('new-sheets').value.trim();
+  if (!name) return;
+  const res = await fetch('/api/add_client', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, password, sheets_id })
+  });
+  const data = await res.json();
+  const msg = document.getElementById('add-msg');
+  if (data.error) {
+    msg.textContent = data.error; msg.className = 'text-red-600 text-sm mt-2';
+  } else {
+    msg.textContent = `נוסף! סיסמה: ${data.default_password}`; msg.className = 'text-green-600 text-sm mt-2';
+    setTimeout(() => location.reload(), 1500);
+  }
+  msg.classList.remove('hidden');
+}
+</script>
+{% endblock %}

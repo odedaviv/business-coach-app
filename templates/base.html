@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}יועץ עסקי{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; }
+    .loader { border: 3px solid #e5e7eb; border-top: 3px solid #1e40af; border-radius: 50%; width: 24px; height: 24px; animation: spin 0.8s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    textarea { resize: vertical; min-height: 80px; }
+    .prose p { margin-bottom: 0.5rem; }
+    .prose strong { font-weight: 700; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <header class="bg-blue-900 text-white shadow-md">
+    <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-5">
+        <a href="{% if session.get('user', {}).get('is_admin') %}/{% else %}/portal{% endif %}"
+           class="text-lg font-bold tracking-wide hover:text-blue-200 transition-colors">
+          עודד אביב | יועץ עסקי
+        </a>
+        {% if session.get('user', {}).get('is_admin') %}
+        <a href="/contacts" class="text-blue-300 text-sm hover:text-white transition-colors">רשימת לקוחות</a>
+        {% endif %}
+      </div>
+      <div class="flex items-center gap-4">
+        <span class="text-blue-300 text-sm hidden sm:block" id="today-date"></span>
+        {% if session.get('user') %}
+        <span class="text-blue-200 text-sm">{{ session.user.name }}</span>
+        <a href="/logout" class="text-blue-300 text-sm hover:text-white transition-colors">יציאה</a>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+  <main class="max-w-4xl mx-auto px-4 py-8">
+    {% block content %}{% endblock %}
+  </main>
+  <script>
+    const d = new Date();
+    const el = document.getElementById('today-date');
+    if (el) el.textContent = d.toLocaleDateString('he-IL', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

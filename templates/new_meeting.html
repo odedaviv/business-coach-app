@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}פגישה חדשה | {{ client_name }}{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex items-center gap-3">
+  <a href="/client/{{ client_name }}" class="text-blue-700 hover:underline text-sm">← חזרה</a>
+  <h1 class="text-2xl font-bold text-gray-800">פגישה חדשה — {{ client_name }}</h1>
+</div>
+
+<!-- Tabs -->
+<div class="flex gap-1 mb-6 bg-gray-100 rounded-xl p-1 max-w-xs">
+  <button onclick="showTab('record')" id="tab-record"
+          class="flex-1 py-2 rounded-lg text-sm font-medium transition-colors bg-white shadow text-blue-800">
+    הקלט
+  </button>
+  <button onclick="showTab('upload')" id="tab-upload"
+          class="flex-1 py-2 rounded-lg text-sm font-medium transition-colors text-gray-500 hover:text-gray-700">
+    העלה קובץ
+  </button>
+</div>
+
+<!-- Record tab -->
+<div id="tab-record-content">
+  <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm mb-4">
+    <div class="flex flex-col items-center gap-4">
+      <div id="rec-status" class="text-gray-500 text-sm">לחץ על הכפתור כדי להתחיל הקלטה</div>
+      <div id="rec-timer" class="text-3xl font-mono text-gray-800 hidden">00:00</div>
+      <div class="flex gap-3">
+        <button onclick="startRecording()" id="btn-start"
+                class="bg-red-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-red-700 transition-colors flex items-center gap-2">
+          <span class="w-3 h-3 bg-white rounded-full"></span> התחל הקלטה
+        </button>
+        <button onclick="stopRecording()" id="btn-stop"
+                class="bg-gray-700 text-white px-6 py-3 rounded-xl font-semibold hover:bg-gray-600 transition-colors hidden">
+          עצור
+        </button>
+      </div>
+      <audio id="audio-preview" controls class="hidden w-full mt-2"></audio>
+      <button onclick="uploadRecording()" id="btn-upload-rec"
+              class="bg-blue-800 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors hidden">
+        שלח לעיבוד ←
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Upload tab -->
+<div id="tab-upload-content" class="hidden">
+  <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm mb-4">
+    <label class="block text-sm font-medium text-gray-700 mb-2">בחר קובץ שמע (mp3, wav, m4a, webm)</label>
+    <input type="file" id="file-input" accept=".mp3,.wav,.m4a,.webm,.ogg,.mp4"
+           class="block w-full text-sm text-gray-500 file:ml-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-800 file:font-medium hover:file:bg-blue-100" />
+    <button onclick="uploadFile()"
+            class="mt-4 bg-blue-800 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+      העלה ועבד ←
+    </button>
+  </div>
+</div>
+
+<!-- Processing indicator -->
+<div id="processing" class="hidden bg-blue-50 border border-blue-200 rounded-xl p-5 mb-4 flex items-center gap-3">
+  <div class="loader"></div>
+  <div>
+    <p class="font-medium text-blue-800" id="proc-step">מתמלל...</p>
+    <p class="text-sm text-blue-600">זה עשוי לקחת דקה-שתיים</p>
+  </div>
+</div>
+
+<!-- Result -->
+<div id="result" class="hidden space-y-4">
+  <div class="bg-green-50 border border-green-200 rounded-xl p-4">
+    <p class="text-green-800 font-semibold">הפגישה נשמרה בהצלחה</p>
+  </div>
+
+  <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+    <h3 class="font-bold text-gray-800 mb-2">סיכום הפגישה</h3>
+    <div id="result-summary" class="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap prose"></div>
+  </div>
+
+  <details class="bg-white border border-gray-200 rounded-xl">
+    <summary class="px-5 py-3 cursor-pointer font-medium text-gray-600 hover:bg-gray-50 rounded-xl">תמלול מלא</summary>
+    <div class="px-5 pb-5 pt-3 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap border-t border-gray-100" id="result-transcript"></div>
+  </details>
+
+  <a href="/client/{{ client_name }}" class="inline-block bg-blue-800 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 transition-colors">
+    חזור לדף הלקוח
+  </a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const CLIENT = "{{ client_name }}";
+let mediaRecorder, chunks = [], recordingBlob, timerInterval, seconds = 0;
+
+function showTab(tab) {
+  ['record','upload'].forEach(t => {
+    document.getElementById('tab-' + t + '-content').classList.toggle('hidden', t !== tab);
+    const btn = document.getElementById('tab-' + t);
+    btn.classList.toggle('bg-white', t === tab);
+    btn.classList.toggle('shadow', t === tab);
+    btn.classList.toggle('text-blue-800', t === tab);
+    btn.classList.toggle('text-gray-500', t !== tab);
+  });
+}
+
+async function startRecording() {
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  chunks = []; seconds = 0;
+  mediaRecorder = new MediaRecorder(stream);
+  mediaRecorder.ondataavailable = e => chunks.push(e.data);
+  mediaRecorder.onstop = () => {
+    recordingBlob = new Blob(chunks, { type: 'audio/webm' });
+    const url = URL.createObjectURL(recordingBlob);
+    const preview = document.getElementById('audio-preview');
+    preview.src = url;
+    preview.classList.remove('hidden');
+    document.getElementById('btn-upload-rec').classList.remove('hidden');
+    stream.getTracks().forEach(t => t.stop());
+  };
+  mediaRecorder.start();
+  document.getElementById('btn-start').classList.add('hidden');
+  document.getElementById('btn-stop').classList.remove('hidden');
+  document.getElementById('rec-timer').classList.remove('hidden');
+  document.getElementById('rec-status').textContent = 'מקליט...';
+  timerInterval = setInterval(() => {
+    seconds++;
+    const m = String(Math.floor(seconds/60)).padStart(2,'0');
+    const s = String(seconds%60).padStart(2,'0');
+    document.getElementById('rec-timer').textContent = m + ':' + s;
+  }, 1000);
+}
+
+function stopRecording() {
+  mediaRecorder.stop();
+  clearInterval(timerInterval);
+  document.getElementById('btn-stop').classList.add('hidden');
+  document.getElementById('rec-status').textContent = 'ההקלטה הסתיימה';
+}
+
+async function uploadRecording() {
+  if (!recordingBlob) return;
+  const fd = new FormData();
+  fd.append('client', CLIENT);
+  fd.append('audio', recordingBlob, 'recording.webm');
+  await processUpload(fd);
+}
+
+async function uploadFile() {
+  const file = document.getElementById('file-input').files[0];
+  if (!file) { alert('נא לבחור קובץ'); return; }
+  const fd = new FormData();
+  fd.append('client', CLIENT);
+  fd.append('audio', file);
+  await processUpload(fd);
+}
+
+async function processUpload(formData) {
+  document.getElementById('processing').classList.remove('hidden');
+  document.getElementById('result').classList.add('hidden');
+  document.getElementById('proc-step').textContent = 'מתמלל...';
+
+  try {
+    const res = await fetch('/api/upload_meeting', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    document.getElementById('result-summary').textContent = data.summary;
+    document.getElementById('result-transcript').textContent = data.transcript;
+    document.getElementById('result').classList.remove('hidden');
+    document.getElementById('result').scrollIntoView({ behavior: 'smooth' });
+  } catch(e) {
+    alert('שגיאה: ' + e.message);
+  } finally {
+    document.getElementById('processing').classList.add('hidden');
+  }
+}
+</script>
+{% endblock %}

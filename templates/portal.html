@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}הפורטל שלי{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-3xl font-bold text-gray-800">שלום, {{ client_name }} 👋</h1>
+  <p class="text-gray-500 mt-1">ההתקדמות החודשית שלך</p>
+</div>
+
+{% if sheets_error %}
+<div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5 text-amber-700 text-sm">
+  הנתונים מהגיליון אינם זמינים כרגע
+</div>
+{% endif %}
+
+<!-- Progress table -->
+{% if progress %}
+<div class="bg-white border border-gray-200 rounded-xl shadow-sm mb-6 overflow-hidden">
+  <div class="px-5 py-4 border-b border-gray-100">
+    <h2 class="font-bold text-gray-800">התקדמות חודשית</h2>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="text-right px-4 py-2 font-medium text-gray-600">תחום</th>
+          <th class="text-center px-3 py-2 font-medium text-gray-600">יעד</th>
+          <th class="text-center px-3 py-2 font-medium text-gray-600">בוצע</th>
+          <th class="text-center px-3 py-2 font-medium text-gray-600">נשאר</th>
+          <th class="px-4 py-2 font-medium text-gray-600 min-w-32">התקדמות</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for item in progress %}
+        {% set pct = item.cumulative / item.monthly_goal * 100 if item.monthly_goal else 0 %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-4 py-3 font-medium text-gray-800">{{ item.category }}</td>
+          <td class="px-3 py-3 text-center text-gray-600">{{ item.monthly_goal | int }}</td>
+          <td class="px-3 py-3 text-center font-semibold
+              {% if pct >= 80 %}text-green-700{% elif pct >= 50 %}text-amber-600{% else %}text-red-600{% endif %}">
+            {{ item.cumulative | int }}
+          </td>
+          <td class="px-3 py-3 text-center text-gray-600">{{ item.remaining | int }}</td>
+          <td class="px-4 py-3">
+            <div class="bg-gray-200 rounded-full h-2">
+              <div class="h-2 rounded-full {% if pct >= 80 %}bg-green-500{% elif pct >= 50 %}bg-amber-400{% else %}bg-red-400{% endif %}"
+                   style="width: {{ [pct, 100] | min }}%"></div>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Get motivation -->
+<div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm mb-6">
+  <h2 class="font-bold text-gray-800 mb-3">קבל מסר מוטיבציוני</h2>
+  <textarea id="client-note" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+            placeholder="ספר מה עשית השבוע... (אופציונלי)"></textarea>
+  <button onclick="getMotivation()"
+          class="mt-3 w-full bg-blue-800 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+    <span id="btn-text">קבל ניתוח ומוטיבציה</span>
+    <span id="btn-loader" class="loader hidden"></span>
+  </button>
+</div>
+
+<div id="result-box" class="hidden mb-6 space-y-3">
+  <div class="bg-amber-50 border border-amber-200 rounded-xl p-5">
+    <h3 class="font-bold text-amber-800 mb-2">מה נשאר לעשות</h3>
+    <p id="result-remaining" class="text-gray-800 leading-relaxed"></p>
+  </div>
+  <div class="bg-blue-50 border border-blue-200 rounded-xl p-5">
+    <h3 class="font-bold text-blue-800 mb-2">מסר מוטיבציוני</h3>
+    <p id="result-motivation" class="text-gray-800 leading-relaxed text-lg"></p>
+  </div>
+</div>
+{% endif %}
+
+<!-- Meeting summaries -->
+{% if meetings %}
+<section class="mb-8">
+  <h2 class="text-xl font-bold text-gray-700 mb-4">סיכומי פגישות</h2>
+  <div class="space-y-3">
+    {% for m in meetings %}
+    <a href="/meeting/{{ m.id }}"
+       class="block bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md hover:border-blue-300 transition-all">
+      <div class="flex items-start justify-between gap-2">
+        <div>
+          <p class="font-semibold text-gray-800">{{ m.title or 'פגישה' }}</p>
+          <p class="text-sm text-gray-500 mt-0.5">{{ m.date }}</p>
+          {% if m.summary %}
+          <p class="text-sm text-gray-600 mt-2">{{ m.summary[:120] }}...</p>
+          {% endif %}
+        </div>
+        <span class="text-blue-600 text-sm shrink-0">← קרא</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- Previous coaching notes -->
+{% if notes %}
+<section class="mb-8">
+  <h2 class="text-xl font-bold text-gray-700 mb-4">ניתוחים קודמים</h2>
+  <div class="space-y-2">
+    {% for n in notes %}
+    <details class="bg-white border border-gray-200 rounded-xl">
+      <summary class="px-4 py-3 cursor-pointer text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-xl list-none flex justify-between">
+        <span>{{ n.date }}</span><span class="text-gray-400">▼</span>
+      </summary>
+      <div class="px-4 pb-4 pt-2 text-sm text-gray-700 space-y-2 border-t border-gray-100">
+        {% if n.note %}<p><strong>הערה:</strong> {{ n.note }}</p>{% endif %}
+        <p class="text-amber-700"><strong>מה נשאר:</strong> {{ n.remaining }}</p>
+        <p class="text-blue-700"><strong>מוטיבציה:</strong> {{ n.motivation }}</p>
+      </div>
+    </details>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- Change password -->
+<div class="bg-white border border-gray-200 rounded-xl p-5">
+  <h3 class="font-semibold text-gray-700 mb-3">שינוי סיסמה</h3>
+  <div class="flex gap-2 max-w-sm">
+    <input id="new-pass" type="password" placeholder="סיסמה חדשה"
+           class="border border-gray-300 rounded-lg px-3 py-2 text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+    <button onclick="changePassword()"
+            class="bg-gray-700 text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-600 transition-colors">עדכן</button>
+  </div>
+  <p id="pass-msg" class="text-green-600 text-sm mt-2 hidden">הסיסמה עודכנה</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function getMotivation() {
+  document.getElementById('btn-text').textContent = 'מנתח...';
+  document.getElementById('btn-loader').classList.remove('hidden');
+  document.getElementById('result-box').classList.add('hidden');
+  try {
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ note: document.getElementById('client-note').value })
+    });
+    const data = await res.json();
+    if (data.error) { alert(data.error); return; }
+    document.getElementById('result-remaining').textContent = data.remaining;
+    document.getElementById('result-motivation').textContent = data.motivation;
+    document.getElementById('result-box').classList.remove('hidden');
+    document.getElementById('result-box').scrollIntoView({ behavior: 'smooth' });
+  } catch(e) { alert('שגיאה'); }
+  finally {
+    document.getElementById('btn-text').textContent = 'קבל ניתוח ומוטיבציה';
+    document.getElementById('btn-loader').classList.add('hidden');
+  }
+}
+
+async function changePassword() {
+  const pw = document.getElementById('new-pass').value.trim();
+  if (!pw || pw.length < 4) { alert('סיסמה קצרה מדי'); return; }
+  await fetch('/api/change_password', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pw}) });
+  document.getElementById('pass-msg').classList.remove('hidden');
+  document.getElementById('new-pass').value = '';
+}
+</script>
+{% endblock %}

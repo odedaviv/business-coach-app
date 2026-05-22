@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block title %}ניהול לקוחות{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex items-center justify-between flex-wrap gap-3">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-800">רשימת לקוחות</h1>
+    <p class="text-gray-500 text-sm mt-0.5">שלח מסר מוטיבציוני ב-WhatsApp או אימייל</p>
+  </div>
+  <button onclick="showAddForm()"
+          class="bg-blue-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+    + הוסף לקוח
+  </button>
+</div>
+
+{% if not sheets_id %}
+<div class="bg-amber-50 border border-amber-300 rounded-xl p-4 mb-5 text-sm text-amber-800">
+  <strong>הגדרת CONTACTS_SHEETS_ID חסרה ב-.env</strong><br>
+  הוסף לקובץ .env: <code class="bg-amber-100 px-1 rounded">CONTACTS_SHEETS_ID=ID_של_הגיליון_המרכזי</code>
+</div>
+{% endif %}
+
+{% if error %}
+<div class="bg-red-50 border border-red-200 rounded-xl p-4 mb-5 text-red-700 text-sm">שגיאה: {{ error }}</div>
+{% endif %}
+
+<!-- Add contact form -->
+<div id="add-form" class="hidden bg-white border border-gray-200 rounded-xl p-5 mb-5 shadow-sm">
+  <h3 class="font-semibold text-gray-800 mb-3">לקוח חדש</h3>
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <input id="f-name" type="text" placeholder="שם לקוח *"
+           class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+    <input id="f-phone" type="tel" placeholder="טלפון (050-...)"
+           class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+    <input id="f-email" type="email" placeholder="אימייל"
+           class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+    <div class="flex gap-2">
+      <select id="f-day" class="border border-gray-300 rounded-lg px-3 py-2 text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-blue-400">
+        <option value="">יום פגישה...</option>
+        <option>ראשון</option><option>שני</option><option>שלישי</option>
+        <option>רביעי</option><option>חמישי</option><option>שישי</option>
+      </select>
+      <input id="f-time" type="time" class="border border-gray-300 rounded-lg px-3 py-2 text-sm w-28 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+    </div>
+    <input id="f-notes" type="text" placeholder="הערות"
+           class="border border-gray-300 rounded-lg px-3 py-2 text-sm sm:col-span-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+  </div>
+  <div class="flex gap-2 mt-3">
+    <button onclick="saveContact()" class="bg-blue-800 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">שמור</button>
+    <button onclick="document.getElementById('add-form').classList.add('hidden')"
+            class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-200">ביטול</button>
+  </div>
+  <p id="save-msg" class="text-green-600 text-sm mt-2 hidden">נשמר בגוגל שיטס ✓</p>
+</div>
+
+<!-- Contact cards -->
+{% if contacts %}
+<div class="space-y-3">
+  {% for c in contacts %}
+  <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm" id="card-{{ loop.index }}">
+    <div class="flex items-start justify-between gap-3 flex-wrap">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-800 font-bold text-base shrink-0">
+          {{ c['שם לקוח'][0] if c['שם לקוח'] else '?' }}
+        </div>
+        <div>
+          <p class="font-semibold text-gray-800">{{ c['שם לקוח'] }}</p>
+          <div class="flex gap-3 mt-0.5 text-xs text-gray-500 flex-wrap">
+            {% if c['טלפון'] %}<span>📞 {{ c['טלפון'] }}</span>{% endif %}
+            {% if c['אימייל'] %}<span>✉ {{ c['אימייל'] }}</span>{% endif %}
+            {% if c['יום פגישה'] %}<span>📅 {{ c['יום פגישה'] }}{% if c['שעת פגישה'] %} {{ c['שעת פגישה'] }}{% endif %}</span>{% endif %}
+          </div>
+          {% if c['הערות'] %}<p class="text-xs text-gray-400 mt-0.5">{{ c['הערות'] }}</p>{% endif %}
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="flex gap-2 flex-wrap">
+        {% if c['טלפון'] %}
+        <button onclick="prepWhatsApp('{{ c['שם לקוח'] }}', '{{ c['טלפון'] }}')"
+                class="bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-green-600 transition-colors flex items-center gap-1">
+          WhatsApp
+        </button>
+        {% endif %}
+        {% if c['אימייל'] %}
+        <button onclick="sendEmail('{{ c['שם לקוח'] }}', '{{ c['אימייל'] }}')"
+                class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors"
+                id="email-btn-{{ loop.index }}">
+          שלח דוח
+        </button>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- WhatsApp preview (hidden by default) -->
+    <div id="wa-preview-{{ loop.index0 }}" class="hidden mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+      <p class="text-xs font-medium text-green-800 mb-1">הודעת WhatsApp:</p>
+      <p id="wa-text-{{ loop.index0 }}" class="text-sm text-gray-700 leading-relaxed"></p>
+      <div class="flex gap-2 mt-2">
+        <a id="wa-link-{{ loop.index0 }}" href="#" target="_blank"
+           class="bg-green-500 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-green-600 transition-colors">
+          פתח WhatsApp ←
+        </a>
+        <button onclick="document.getElementById('wa-preview-{{ loop.index0 }}').classList.add('hidden')"
+                class="text-gray-500 text-sm hover:text-gray-700">סגור</button>
+      </div>
+    </div>
+
+    <p id="email-ok-{{ loop.index0 }}" class="hidden text-green-600 text-xs mt-2">אימייל נשלח ✓</p>
+    <p id="email-err-{{ loop.index0 }}" class="hidden text-red-600 text-xs mt-2"></p>
+  </div>
+  {% endfor %}
+</div>
+{% elif sheets_id %}
+<div class="bg-white border border-dashed border-gray-300 rounded-xl p-10 text-center text-gray-400">
+  <p>אין לקוחות עדיין — לחץ "הוסף לקוח" להתחלה</p>
+  <p class="text-sm mt-1">הנתונים נשמרים בטאב "לקוחות" בגיליון שלך</p>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const contacts = {{ contacts | tojson }};
+
+function showAddForm() {
+  document.getElementById('add-form').classList.toggle('hidden');
+}
+
+async function saveContact() {
+  const data = {
+    name: document.getElementById('f-name').value.trim(),
+    phone: document.getElementById('f-phone').value.trim(),
+    email: document.getElementById('f-email').value.trim(),
+    meeting_day: document.getElementById('f-day').value,
+    meeting_time: document.getElementById('f-time').value,
+    notes: document.getElementById('f-notes').value.trim(),
+  };
+  if (!data.name) { alert('שם לקוח הוא שדה חובה'); return; }
+  const res = await fetch('/api/save_contact', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  const result = await res.json();
+  if (result.error) { alert(result.error); return; }
+  document.getElementById('save-msg').classList.remove('hidden');
+  setTimeout(() => location.reload(), 1200);
+}
+
+async function prepWhatsApp(clientName, phone) {
+  const idx = contacts.findIndex(c => c['שם לקוח'] === clientName);
+  const preview = document.getElementById(`wa-preview-${idx}`);
+  const textEl = document.getElementById(`wa-text-${idx}`);
+  const linkEl = document.getElementById(`wa-link-${idx}`);
+
+  textEl.textContent = 'מייצר הודעה...';
+  preview.classList.remove('hidden');
+
+  const res = await fetch('/api/send_whatsapp_prep', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ client_name: clientName, phone })
+  });
+  const data = await res.json();
+  textEl.textContent = data.message;
+  linkEl.href = data.link;
+}
+
+async function sendEmail(clientName, email) {
+  const idx = contacts.findIndex(c => c['שם לקוח'] === clientName);
+  const btn = document.getElementById(`email-btn-${idx + 1}`);
+  if (btn) { btn.textContent = 'שולח...'; btn.disabled = true; }
+
+  const res = await fetch('/api/send_email_report', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ client_name: clientName, email })
+  });
+  const data = await res.json();
+
+  if (data.success) {
+    document.getElementById(`email-ok-${idx}`).classList.remove('hidden');
+    if (btn) { btn.textContent = 'נשלח ✓'; btn.classList.add('opacity-50'); }
+  } else {
+    document.getElementById(`email-err-${idx}`).textContent = data.error || 'שגיאה';
+    document.getElementById(`email-err-${idx}`).classList.remove('hidden');
+    if (btn) { btn.textContent = 'שלח דוח'; btn.disabled = false; }
+  }
+}
+</script>
+{% endblock %}

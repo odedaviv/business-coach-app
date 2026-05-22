@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(python --version)",
+      "PowerShell(& python3 --version)",
+      "PowerShell(& py --version)",
+      "PowerShell(& where.exe python)",
+      "PowerShell(& \"C:\\\\Users\\\\diska\\\\AppData\\\\Local\\\\Microsoft\\\\WindowsApps\\\\python.exe\" --version)",
+      "PowerShell($env:PATH -split \";\" | Where-Object { $_ -match \"python|conda|node\" })",
+      "PowerShell(Start-Sleep -Seconds 3; \\(Invoke-WebRequest -Uri \"http://localhost:5000/login\" -UseBasicParsing -TimeoutSec 5\\).StatusCode)",
+      "PowerShell(\\(Invoke-WebRequest -Uri \"http://localhost:5000/login\" -UseBasicParsing -TimeoutSec 5\\).StatusCode)"
+    ]
+  }
+}

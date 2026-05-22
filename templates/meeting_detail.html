@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}{{ meeting.title or 'פגישה' }}{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex items-center gap-3">
+  {% if session.get('user', {}).get('is_admin') %}
+  <a href="/client/{{ meeting.client_name }}" class="text-blue-700 hover:underline text-sm">← חזרה</a>
+  {% else %}
+  <a href="/portal" class="text-blue-700 hover:underline text-sm">← חזרה</a>
+  {% endif %}
+  <h1 class="text-2xl font-bold text-gray-800">{{ meeting.title or 'פגישה' }}</h1>
+</div>
+
+<div class="flex gap-4 text-sm text-gray-500 mb-6">
+  <span>{{ meeting.date }}</span>
+  <span>{{ meeting.client_name }}</span>
+</div>
+
+{% if meeting.audio_filename %}
+<div class="bg-white border border-gray-200 rounded-xl p-4 mb-5 shadow-sm">
+  <p class="text-sm font-medium text-gray-600 mb-2">הקלטת הפגישה</p>
+  <audio controls class="w-full" src="/uploads/{{ meeting.audio_filename }}"></audio>
+</div>
+{% endif %}
+
+<div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm mb-5">
+  <h2 class="font-bold text-gray-800 mb-3">סיכום הפגישה</h2>
+  <div class="text-gray-700 leading-relaxed whitespace-pre-wrap text-sm">{{ meeting.summary }}</div>
+</div>
+
+{% if meeting.transcript %}
+<details class="bg-white border border-gray-200 rounded-xl shadow-sm">
+  <summary class="px-5 py-4 cursor-pointer font-medium text-gray-600 hover:bg-gray-50 rounded-xl">
+    תמלול מלא
+  </summary>
+  <div class="px-5 pb-5 pt-3 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap border-t border-gray-100">
+    {{ meeting.transcript }}
+  </div>
+</details>
+{% endif %}
+{% endblock %}

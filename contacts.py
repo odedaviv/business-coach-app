@@ -1,12 +1,13 @@
 """
 Reads client contact list from a Google Sheet tab named 'לקוחות'.
-Expected columns (A-F):
+Expected columns (A-G):
   A: שם לקוח
   B: טלפון
   C: אימייל
   D: יום פגישה (ראשון/שני/...)
   E: שעת פגישה (HH:MM)
   F: הערות
+  G: Google Sheets ID (ID של גיליון המעקב האישי)
 """
 import smtplib
 import ssl
@@ -17,7 +18,7 @@ import os
 from gauth import get_gc as _get_gc
 
 CONTACTS_TAB = 'לקוחות'
-CONTACTS_HEADERS = ['שם לקוח', 'טלפון', 'אימייל', 'יום פגישה', 'שעת פגישה', 'הערות']
+CONTACTS_HEADERS = ['שם לקוח', 'טלפון', 'אימייל', 'יום פגישה', 'שעת פגישה', 'הערות', 'Google Sheets ID']
 
 
 def get_contacts_sheet(sheets_id):

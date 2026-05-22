@@ -77,13 +77,13 @@
       <!-- Action buttons -->
       <div class="flex gap-2 flex-wrap">
         {% if c['טלפון'] %}
-        <button onclick="prepWhatsApp('{{ c['שם לקוח'] }}', '{{ c['טלפון'] }}')"
-                class="bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-green-600 transition-colors flex items-center gap-1">
+        <button onclick="prepWhatsApp('{{ c['שם לקוח'] }}', '{{ c['טלפון'] }}', '{{ c.get('Google Sheets ID','') }}')"
+                class="bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-green-600 transition-colors">
           WhatsApp
         </button>
         {% endif %}
         {% if c['אימייל'] %}
-        <button onclick="sendEmail('{{ c['שם לקוח'] }}', '{{ c['אימייל'] }}')"
+        <button onclick="sendEmail('{{ c['שם לקוח'] }}', '{{ c['אימייל'] }}', '{{ c.get('Google Sheets ID','') }}')"
                 class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors"
                 id="email-btn-{{ loop.index }}">
           שלח דוח
@@ -149,7 +149,7 @@ async function saveContact() {
   setTimeout(() => location.reload(), 1200);
 }
 
-async function prepWhatsApp(clientName, phone) {
+async function prepWhatsApp(clientName, phone, sheetsId) {
   const idx = contacts.findIndex(c => c['שם לקוח'] === clientName);
   const preview = document.getElementById(`wa-preview-${idx}`);
   const textEl = document.getElementById(`wa-text-${idx}`);
@@ -161,14 +161,14 @@ async function prepWhatsApp(clientName, phone) {
   const res = await fetch('/api/send_whatsapp_prep', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ client_name: clientName, phone })
+    body: JSON.stringify({ client_name: clientName, phone, sheets_id: sheetsId })
   });
   const data = await res.json();
   textEl.textContent = data.message;
   linkEl.href = data.link;
 }
 
-async function sendEmail(clientName, email) {
+async function sendEmail(clientName, email, sheetsId) {
   const idx = contacts.findIndex(c => c['שם לקוח'] === clientName);
   const btn = document.getElementById(`email-btn-${idx + 1}`);
   if (btn) { btn.textContent = 'שולח...'; btn.disabled = true; }
@@ -176,7 +176,7 @@ async function sendEmail(clientName, email) {
   const res = await fetch('/api/send_email_report', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ client_name: clientName, email })
+    body: JSON.stringify({ client_name: clientName, email, sheets_id: sheetsId })
   });
   const data = await res.json();
 

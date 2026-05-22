@@ -268,8 +268,11 @@ def send_whatsapp_prep():
     data = request.json
     client_name = data['client_name']
     phone = data['phone']
-    user = get_user(client_name)
-    sheets_id = user.get('sheets_id', '') if user else ''
+    # sheets_id can come from contacts sheet directly (column G)
+    sheets_id = data.get('sheets_id', '')
+    if not sheets_id:
+        user = get_user(client_name)
+        sheets_id = user.get('sheets_id', '') if user else ''
     progress = []
     if sheets_id:
         try:
@@ -288,10 +291,12 @@ def send_email_report():
     data = request.json
     client_name = data['client_name']
     email = data['email']
-    user = get_user(client_name)
-    sheets_id = user.get('sheets_id', '') if user else ''
+    sheets_id = data.get('sheets_id', '')
     if not sheets_id:
-        return jsonify({'error': 'לא מוגדר Google Sheets ללקוח'}), 400
+        user = get_user(client_name)
+        sheets_id = user.get('sheets_id', '') if user else ''
+    if not sheets_id:
+        return jsonify({'error': 'לא מוגדר Google Sheets ללקוח — הוסף ID בעמודה G בגיליון'}), 400
     try:
         progress = read_client_progress(sheets_id)
         subject, html = generate_email_report(client_name, progress, sheets_id)

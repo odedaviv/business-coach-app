@@ -322,6 +322,30 @@ def api_save_contact():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/update_contact', methods=['POST'])
+@admin_required
+def api_update_contact():
+    data = request.json
+    sheets_id = os.getenv('CONTACTS_SHEETS_ID', '')
+    if not sheets_id:
+        return jsonify({'error': 'CONTACTS_SHEETS_ID לא מוגדר'}), 400
+    try:
+        from contacts import update_contact
+        row_index = data.get('row_index', 2)
+        update_contact(sheets_id, row_index, {
+            'name': data.get('name', ''),
+            'phone': data.get('phone', ''),
+            'email': data.get('email', ''),
+            'meeting_day': data.get('meeting_day', ''),
+            'meeting_time': data.get('meeting_time', ''),
+            'notes': data.get('notes', ''),
+            'sheets_id': data.get('sheets_id', ''),
+        })
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     debug = os.getenv('FLASK_DEBUG', 'true').lower() == 'true'

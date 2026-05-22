@@ -49,19 +49,21 @@ def save_contact(sheets_id, contact):
         contact.get('meeting_day', ''),
         contact.get('meeting_time', ''),
         contact.get('notes', ''),
+        contact.get('sheets_id', ''),
     ])
 
 
 def update_contact(sheets_id, row_index, contact):
     """row_index is 1-based (header=1, first data row=2)"""
     ws = get_contacts_sheet(sheets_id)
-    ws.update(f'A{row_index}:F{row_index}', [[
+    ws.update(f'A{row_index}:G{row_index}', [[
         contact.get('name', ''),
         contact.get('phone', ''),
         contact.get('email', ''),
         contact.get('meeting_day', ''),
         contact.get('meeting_time', ''),
         contact.get('notes', ''),
+        contact.get('sheets_id', ''),
     ]])
 
 
